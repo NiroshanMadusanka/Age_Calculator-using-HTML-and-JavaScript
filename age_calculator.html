@@ -40,6 +40,11 @@
       button:hover {
         background-color: #0095c2;
       }
+      label {
+        font-size: 14px;
+        display: block;
+        margin: 10px 0;
+      }
       .result {
         margin-top: 20px;
         font-size: 18px;
@@ -51,41 +56,80 @@
     <div class="container">
       <h1>Age Calculator</h1>
       <form id="ageForm">
+        <label for="birthDate">Select Your Date of Birth:</label>
         <input type="date" id="birthDate" required />
+
+        <label for="checkToday">
+          <input
+            type="checkbox"
+            id="checkToday"
+            checked
+            onchange="toggleTargetDate()"
+          />
+          Find age for today
+        </label>
+
+        <div id="targetDateDiv" style="display: none">
+          <label for="targetDate">Select Target Date:</label>
+          <input type="date" id="targetDate" />
+        </div>
+
         <button type="button" onclick="calculateAge()">Calculate Age</button>
       </form>
       <div class="result" id="result"></div>
     </div>
 
     <script>
+      function toggleTargetDate() {
+        const checkToday = document.getElementById("checkToday").checked;
+        const targetDateDiv = document.getElementById("targetDateDiv");
+        targetDateDiv.style.display = checkToday ? "none" : "block";
+      }
+
       function calculateAge() {
         const birthDateInput = document.getElementById("birthDate").value;
         if (!birthDateInput) {
           document.getElementById("result").innerText =
-            "Please select a valid date!";
+            "Please select your date of birth!";
           return;
         }
 
-        const today = new Date();
+        const checkToday = document.getElementById("checkToday").checked;
+        let targetDate;
+
+        if (checkToday) {
+          targetDate = new Date();
+        } else {
+          const targetDateInput = document.getElementById("targetDate").value;
+          if (!targetDateInput) {
+            document.getElementById("result").innerText =
+              "Please select a target date!";
+            return;
+          }
+          targetDate = new Date(targetDateInput);
+        }
+
         const birthDate = new Date(birthDateInput);
-        if (birthDate > today) {
+        if (birthDate > targetDate) {
           document.getElementById("result").innerText =
-            "The birthdate cannot be in the future!";
+            "The birthdate cannot be after the target date!";
           return;
         }
 
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const monthDiff = today.getMonth() - birthDate.getMonth();
-        const dayDiff = today.getDate() - birthDate.getDate();
+        let age = targetDate.getFullYear() - birthDate.getFullYear();
+        const monthDiff = targetDate.getMonth() - birthDate.getMonth();
+        const dayDiff = targetDate.getDate() - birthDate.getDate();
 
-        // Adjust for incomplete year
         if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
           age--;
         }
 
+        const formattedTargetDate = checkToday
+          ? "today"
+          : targetDate.toDateString();
         document.getElementById(
           "result"
-        ).innerText = `You are ${age} years old.`;
+        ).innerText = `You are ${age} years old as of ${formattedTargetDate}.`;
       }
     </script>
   </body>
