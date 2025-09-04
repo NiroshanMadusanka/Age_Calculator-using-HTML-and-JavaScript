@@ -50,6 +50,37 @@
         font-size: 18px;
         font-weight: bold;
       }
+      .error {
+        color: red;
+        font-size: 12px;
+        margin-top: 5px;
+      }
+      .buttons {
+        display: flex;
+        justify-content: space-between;
+        width: 90%;
+        margin: 10px auto;
+      }
+      .buttons button {
+        width: 48%;
+      }
+      @media (max-width: 600px) {
+        .container {
+          max-width: 90%;
+          margin: 20px auto;
+          padding: 15px;
+        }
+        h1 {
+          font-size: 24px;
+        }
+        .buttons {
+          flex-direction: column;
+        }
+        .buttons button {
+          width: 100%;
+          margin-bottom: 10px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -57,7 +88,13 @@
       <h1>Age Calculator</h1>
       <form id="ageForm">
         <label for="birthDate">Select Your Date of Birth:</label>
-        <input type="date" id="birthDate" required />
+        <input
+          type="date"
+          id="birthDate"
+          required
+          aria-describedby="birthError"
+        />
+        <div class="error" id="birthError"></div>
 
         <label for="checkToday">
           <input
@@ -65,32 +102,78 @@
             id="checkToday"
             checked
             onchange="toggleTargetDate()"
+            aria-label="Find age for today"
           />
           Find age for today
         </label>
 
         <div id="targetDateDiv" style="display: none">
           <label for="targetDate">Select Target Date:</label>
-          <input type="date" id="targetDate" />
+          <input type="date" id="targetDate" aria-describedby="targetError" />
+          <div class="error" id="targetError"></div>
         </div>
 
-        <button type="button" onclick="calculateAge()">Calculate Age</button>
+        <div class="buttons">
+          <button type="button" onclick="calculateAge()">Calculate Age</button>
+          <button type="button" onclick="resetForm()">Reset</button>
+        </div>
       </form>
-      <div class="result" id="result"></div>
+      <div class="result" id="result" aria-live="polite"></div>
     </div>
 
     <script>
-      function toggleTargetDate() {
+      // ES6+ features: const, let, arrow functions
+      const toggleTargetDate = () => {
         const checkToday = document.getElementById("checkToday").checked;
         const targetDateDiv = document.getElementById("targetDateDiv");
         targetDateDiv.style.display = checkToday ? "none" : "block";
-      }
+      };
 
-      function calculateAge() {
+      const clearErrors = () => {
+        document.getElementById("birthError").innerText = "";
+        document.getElementById("targetError").innerText = "";
+        document.getElementById("result").innerText = "";
+      };
+
+      const showError = (elementId, message) => {
+        document.getElementById(elementId).innerText = message;
+      };
+
+      const calculatePreciseAge = (birthDate, targetDate) => {
+        let years = targetDate.getFullYear() - birthDate.getFullYear();
+        let months = targetDate.getMonth() - birthDate.getMonth();
+        let days = targetDate.getDate() - birthDate.getDate();
+
+        if (days < 0) {
+          months--;
+          const lastMonth = new Date(
+            targetDate.getFullYear(),
+            targetDate.getMonth(),
+            0
+          );
+          days += lastMonth.getDate();
+        }
+
+        if (months < 0) {
+          years--;
+          months += 12;
+        }
+
+        return { years, months, days };
+      };
+
+      const calculateAge = () => {
+        clearErrors();
         const birthDateInput = document.getElementById("birthDate").value;
         if (!birthDateInput) {
-          document.getElementById("result").innerText =
-            "Please select your date of birth!";
+          showError("birthError", "Please select your date of birth!");
+          return;
+        }
+
+        const birthDate = new Date(birthDateInput);
+        const now = new Date();
+        if (birthDate > now) {
+          showError("birthError", "Birth date cannot be in the future!");
           return;
         }
 
@@ -102,35 +185,36 @@
         } else {
           const targetDateInput = document.getElementById("targetDate").value;
           if (!targetDateInput) {
-            document.getElementById("result").innerText =
-              "Please select a target date!";
+            showError("targetError", "Please select a target date!");
             return;
           }
           targetDate = new Date(targetDateInput);
+          if (targetDate < birthDate) {
+            showError(
+              "targetError",
+              "Target date cannot be before birth date!"
+            );
+            return;
+          }
         }
 
-        const birthDate = new Date(birthDateInput);
-        if (birthDate > targetDate) {
-          document.getElementById("result").innerText =
-            "The birthdate cannot be after the target date!";
-          return;
-        }
-
-        let age = targetDate.getFullYear() - birthDate.getFullYear();
-        const monthDiff = targetDate.getMonth() - birthDate.getMonth();
-        const dayDiff = targetDate.getDate() - birthDate.getDate();
-
-        if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
-          age--;
-        }
-
+        const age = calculatePreciseAge(birthDate, targetDate);
         const formattedTargetDate = checkToday
           ? "today"
-          : targetDate.toDateString();
+          : targetDate.toLocaleDateString();
         document.getElementById(
           "result"
-        ).innerText = `You are ${age} years old as of ${formattedTargetDate}.`;
-      }
+        ).innerText = `You are ${age.years} years, ${age.months} months, and ${age.days} days old as of ${formattedTargetDate}.`;
+      };
+
+      const resetForm = () => {
+        document.getElementById("ageForm").reset();
+        clearErrors();
+        toggleTargetDate(); // Reset toggle
+      };
+
+      // Basic localization: Using toLocaleDateString for date formatting
+      // For full localization, could use Intl.DateTimeFormat
     </script>
   </body>
 </html>
